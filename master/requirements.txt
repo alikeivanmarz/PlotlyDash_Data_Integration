@@ -30,3 +30,4 @@ traitlets
 urllib3
 Werkzeug
 wget
+jupyter-dash
