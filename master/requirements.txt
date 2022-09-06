@@ -29,3 +29,4 @@ SQLAlchemy
 traitlets
 urllib3
 Werkzeug
+wget
