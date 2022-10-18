@@ -1,7 +1,9 @@
+dash
+pandas
+gunicorn
 certifi
 chardet
 click
-dash
 dash-core-components
 dash-html-components
 dash-renderer
@@ -18,7 +20,6 @@ jupyter-core
 MarkupSafe
 nbformat
 numpy
-pandas
 plotly
 psycopg2
 python-dateutil
@@ -31,3 +32,7 @@ urllib3
 Werkzeug
 wget
 jupyter-dash
+dash_deck
+pydeck
+geopandas
+datetime
