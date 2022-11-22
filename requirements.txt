@@ -36,3 +36,4 @@ dash_deck
 pydeck
 geopandas
 datetime
+pathlib

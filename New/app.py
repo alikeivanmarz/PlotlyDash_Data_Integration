@@ -14,10 +14,12 @@ import geopandas as gpd
 import pandas as pd
 import numpy as np
 
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, ClientsideFunction
 from plotly import graph_objs as go
 from plotly.graph_objs import *
 from datetime import datetime as dt
+
+import pathlib
 
 
 # get data from geoJson file
@@ -67,22 +69,9 @@ dropdown_options = [{"label": roadid,"value": roadid} for roadid in all_roadid] 
 
 mapbox_api_token = "pk.eyJ1Ijoicml2aW5kdSIsImEiOiJjazZpZXo0amUwMGJ1M21zYXpzZGMzczdiIn0.eoArFYnhz0jEPQEnF0vdKQ" #For the base map token
 
-list_of_data_sources = {
-    "ATMS",
-    "SRMS",
-}
 
-list_of_resolution = {
-    "5MIN",
-    "15MIN",
-    "30MIN",
-    "1H",
-}
 
-list_of_metrics = {
-    "Volume",
-    "Travel Time",
-}
+
 
 app = dash.Dash(
     __name__, meta_tags=[{"name": "viewport", "content": "width=device-width"}],
@@ -93,6 +82,15 @@ server = app.server
 
 # Plotly mapbox public token
 mapbox_access_token = "pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBnMjEzbG50amg0dnJieG4ifQ.Zme1-Uzoi75IaFbieBDl3A"
+
+
+
+list_of_data_sources = {
+    "ATMS": {"lat": 40.7505, "lon": -73.9934},
+    "SRMS": {"lat": 40.8296, "lon": -73.9262},
+    "SCATS": {"lat": 40.7484, "lon": -73.9857},
+    "TomTom": {"lat": 40.7069, "lon": -74.0113},
+}
 
 
 
@@ -126,33 +124,38 @@ app.layout = html.Div(
                                         # Dropdown for locations on map
                                         dcc.Dropdown(
                                             id="drop_box_roadid",
+                                            # options=[
+                                            #     {"label": i, "value": i}
+                                            #     for i in list_of_locations
+                                            # ],
                                             options=dropdown_options,
                                             placeholder="Select locations",
                                             multi= True,
                                         )
                                     ],
                                 ),
-                                # html.Div(
-                                #     className="div-for-dropdown",
-                                #     children=[
-                                #         # Dropdown to select times
-                                #         dcc.Dropdown(
-                                #             id="bar-selector",
-                                #             options=[
-                                #                 {
-                                #                     "label": str(n) + ":00",
-                                #                     "value": str(n),
-                                #                 }
-                                #                 for n in range(24)
-                                #             ],
-                                #             multi=True,
-                                #             placeholder="Select hours",
-                                #         )
-                                #     ],
-                                # ),
                                 html.Div(
                                     className="div-for-dropdown",
                                     children=[
+                                        # Dropdown to select times
+                                        dcc.Dropdown(
+                                            id="bar-selector",
+                                            options=[
+                                                {
+                                                    "label": str(n) + ":00",
+                                                    "value": str(n),
+                                                }
+                                                for n in range(24)
+                                            ],
+                                            multi=True,
+                                            placeholder="Select hours",
+                                        )
+                                    ],
+                                ),
+                                html.Div(
+                                    className="div-for-dropdown",
+                                    children=[
+                                        # Dropdown for locations on map
                                         dcc.Dropdown(
                                             id="source-dropdown",
                                             options=[
@@ -163,64 +166,29 @@ app.layout = html.Div(
                                         )
                                     ],
                                 ),
-                                html.Div(
-                                    className="div-for-dropdown",
-                                    children=[
-                                        dcc.Dropdown(
-                                            id="resolution-dropdown",
-                                            options=[
-                                                {"label": i, "value": i}
-                                                for i in list_of_resolution
-                                            ],
-                                            placeholder="Select Resolution",
-                                        )
-                                    ],
-                                ),
-                                html.Div(
-                                    className="div-for-dropdown",
-                                    children=[
-                                        dcc.Dropdown(
-                                            id="metrics-dropdown",
-                                            options=[
-                                                {"label": i, "value": i}
-                                                for i in list_of_metrics
-                                            ],
-                                            placeholder="Select Metrics",
-                                        )
-                                    ],
-                                ),
-                            ],
-                        ),                     
-                        html.Div(
-                            className="div-for-dropdown",
-                            children=[
-                                dcc.DatePickerSingle(
-                                    id="date-picker-from",
-                                    min_date_allowed=dt(2014, 4, 1),
-                                    max_date_allowed=dt(2023, 12, 30),
-                                    # initial_visible_month=dt(2022, 10, 11),
-                                    placeholder="Select Date From",
-                                    # date=dt(2022, 10, 11).date(),
-                                    display_format="MMMM D, YYYY",
-                                    style={"border": "0px solid black"},
-                                )
                             ],
                         ),
                         html.Div(
                             className="div-for-dropdown",
                             children=[
-                                dcc.DatePickerSingle(
-                                    id="date-picker-to",
-                                    min_date_allowed=dt(2014, 4, 1),
-                                    max_date_allowed=dt(2023, 12, 30),
-                                    # initial_visible_month=dt(2022, 10, 11),
-                                    placeholder="Select Date To",
-                                    # date=dt(2022, 10, 11).date(),
+                                # dcc.DatePickerSingle(
+                                dcc.DatePickerRange(
+                                    id="date-picker",
+                                    start_date=dt(2022, 10, 11),
+                                    end_date=dt(2022, 10, 126),
+                                    min_date_allowed=dt(2017, 1, 1),
+                                    max_date_allowed=dt(2024, 12, 30),
+                                    initial_visible_month=dt(2022, 10, 11),
+                                    # date=dt(2022, 10, 26).date(),
                                     display_format="MMMM D, YYYY",
                                     style={"border": "0px solid black"},
+                                    # multi=True,
                                 )
                             ],
-                        ),
+                        ),                
+                        html.P(id="total-rides"),
+                        html.P(id="total-rides-selection"),
+                        html.P(id="date-value"),
                         dcc.Markdown(
                             """
                             Data Source: [Download](https://github.com/fivethirtyeight/uber-tlc-foil-response/tree/master/uber-trip-data)
@@ -267,7 +235,89 @@ app.layout = html.Div(
     ]
 )
 
+# Gets the amount of days in the specified month
+# Index represents month (0 is April, 1 is May, ... etc.)
+daysInMonth = [30, 31, 30, 31, 31, 30]
 
+# Get index for the specified month in the dataframe
+monthIndex = pd.Index(["Apr", "May", "June", "July", "Aug", "Sept"])
+
+# Get the amount of rides per hour based on the time selected
+# This also higlights the color of the histogram bars based on
+# if the hours are selected
+def get_selection(month, day, selection):
+    xVal = []
+    yVal = []
+    xSelected = []
+    colorVal = [
+        "#F4EC15",
+        "#DAF017",
+        "#BBEC19",
+        "#9DE81B",
+        "#80E41D",
+        "#66E01F",
+        "#4CDC20",
+        "#34D822",
+        "#24D249",
+        "#25D042",
+        "#26CC58",
+        "#28C86D",
+        "#29C481",
+        "#2AC093",
+        "#2BBCA4",
+        "#2BB5B8",
+        "#2C99B4",
+        "#2D7EB0",
+        "#2D65AC",
+        "#2E4EA4",
+        "#2E38A4",
+        "#3B2FA0",
+        "#4E2F9C",
+        "#603099",
+    ]
+
+    # Put selected times into a list of numbers xSelected
+    xSelected.extend([int(x) for x in selection])
+
+    for i in range(24):
+        # If bar is selected then color it white
+        if i in xSelected and len(xSelected) < 24:
+            colorVal[i] = "#FFFFFF"
+        xVal.append(i)
+        # Get the number of rides at a particular time
+        yVal.append(len(totalList[month][day][totalList[month][day].index.hour == i]))
+    return [np.array(xVal), np.array(yVal), np.array(colorVal)]
+
+
+
+
+
+# Get the Coordinates of the chosen months, dates and times
+def getLatLonColor(selectedData, month, day):
+    listCoords = totalList[month][day]
+
+    # No times selected, output all times for chosen month and date
+    if selectedData is None or len(selectedData) is 0:
+        return listCoords
+    listStr = "listCoords["
+    for time in selectedData:
+        if selectedData.index(time) is not len(selectedData) - 1:
+            listStr += "(totalList[month][day].index.hour==" + str(int(time)) + ") | "
+        else:
+            listStr += "(totalList[month][day].index.hour==" + str(int(time)) + ")]"
+    return eval(listStr)
+
+@app.callback(
+    Output("patient_volume_hm", "figure"),
+    [
+        Input("date-picker", "start_date"),
+        Input("date-picker", "end_date"),
+        # Input("clinic-select", "value"),
+        # Input("patient_volume_hm", "clickData"),
+        # Input("admit-select", "value"),
+        # Input("reset-btn", "n_clicks"),
+    ],
+)
 
 @app.callback(
     Output('map-container','children'),
